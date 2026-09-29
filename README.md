@@ -86,7 +86,3 @@ If no destination is provided, it extracts into the current directory.
 ```bash
 cargo test
 ```
-
-## License
-
-MIT or Apache-2.0
