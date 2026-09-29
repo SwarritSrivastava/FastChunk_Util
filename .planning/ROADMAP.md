@@ -1,0 +1,24 @@
+# Roadmap
+
+## Phase 1: Core Chunking & Streaming Engine
+**Goal**: Build the core Rust CLI and streaming engine that packages files/folders, calculates checksums, and splits into fixed-size chunks (`part_001.bin`, etc.) while generating a robust `manifest.json`.
+- [ ] Initialize Cargo project with dependencies (`clap`, `zstd`, `sha2`, `serde`, `tar`, `indicatif`).
+- [ ] Implement chunk-size parser (`14G`, `500M`, `4000MB`).
+- [ ] Implement streaming archiver that writes directly into sliced chunk files of exact byte limits.
+- [ ] Implement manifest generator with file list, chunk metadata, and SHA-256 hashes.
+- [ ] Provide CLI command `split <SRC> -o <OUT> -s <SIZE> [--store | --fast]`.
+
+## Phase 2: Zero-Dependency Setup & Fast Restorer
+**Goal**: Build the destination reconstruction pipeline that extracts in seconds without external dependencies, detecting missing parts before execution.
+- [ ] Generate self-contained `restore.sh` (Linux/macOS) and `restore.bat`/`restore.ps1` (Windows native).
+- [ ] Implement native Rust `restore <PARTS_DIR> -o <TARGET_DIR>` subcommand.
+- [ ] Implement pre-flight part verification: fail early with clear warnings if parts (e.g. part 3 of 4) are missing.
+- [ ] Support fast multi-threaded Zstandard decompression and zero-compression stream reassembly.
+- [ ] Implement progress reporting during extraction.
+
+## Phase 3: Validation, Large Dataset Benchmarking & Ergonomics
+**Goal**: Verify performance on large datasets, validate cross-platform compatibility, and add UX polish.
+- [ ] End-to-end integration tests simulating single-pen-drive multi-part transfers.
+- [ ] Benchmark extraction speed on large files/directories (verifying seconds-scale extraction).
+- [ ] Add standalone single-binary bundle support so the restorer binary can be copied directly alongside the parts.
+- [ ] Documentation and user guide.
