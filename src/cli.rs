@@ -2,6 +2,8 @@ use clap::{Parser, Subcommand, ValueEnum};
 use std::error::Error;
 use std::path::PathBuf;
 
+use crate::archiver::pack_archive;
+use crate::manifest::Manifest;
 use crate::size_parser::parse_human_size;
 
 #[derive(ValueEnum, Clone, Copy, Debug, PartialEq, Eq)]
@@ -74,7 +76,10 @@ pub fn run() -> Result<(), Box<dyn Error>> {
     let cli = Cli::parse();
     match cli.command {
         Commands::Split(args) => {
-            let chunk_size_bytes = args.validate().map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidInput, e))?;
+            let chunk_size_bytes = args
+                .validate()
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidInput, e))?;
+
             if args.verbose {
                 println!(
                     "Splitting '{}' into chunks of {} bytes in '{}' (mode: {})",
@@ -84,6 +89,52 @@ pub fn run() -> Result<(), Box<dyn Error>> {
                     args.mode
                 );
             }
+
+            let result = pack_archive(
+                &args.source,
+                &args.output,
+                chunk_size_bytes,
+                args.mode,
+                args.verbose,
+            )?;
+
+            let source_name = args
+                .source
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("archive")
+                .to_string();
+
+            let source_type = if args.source.is_dir() {
+                "directory".to_string()
+            } else {
+                "file".to_string()
+            };
+
+            let manifest = Manifest::new(
+                source_name,
+                source_type,
+                result.total_uncompressed_bytes,
+                result.total_entries,
+                args.mode.to_string(),
+                chunk_size_bytes,
+                result.parts.clone(),
+            );
+
+            let manifest_path = args.output.join("manifest.json");
+            manifest.save_to_file(&manifest_path)?;
+
+            println!("Split complete!");
+            println!("  Source:          {}", args.source.display());
+            println!("  Output:          {}", args.output.display());
+            println!("  Mode:            {}", args.mode);
+            println!("  Total entries:   {}", result.total_entries);
+            println!("  Total raw bytes: {}", result.total_uncompressed_bytes);
+            println!("  Parts generated: {}", result.parts.len());
+            for part in &result.parts {
+                println!("    - {} ({} bytes, sha256: {})", part.filename, part.size, part.sha256);
+            }
+            println!("  Manifest:        {}", manifest_path.display());
         }
     }
     Ok(())
