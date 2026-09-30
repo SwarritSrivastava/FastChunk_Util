@@ -124,6 +124,8 @@ pub fn run() -> Result<(), Box<dyn Error>> {
             let manifest_path = args.output.join("manifest.json");
             manifest.save_to_file(&manifest_path)?;
 
+            crate::scripts::write_restore_scripts(&args.output, &manifest)?;
+
             println!("Split complete!");
             println!("  Source:          {}", args.source.display());
             println!("  Output:          {}", args.output.display());
@@ -135,6 +137,7 @@ pub fn run() -> Result<(), Box<dyn Error>> {
                 println!("    - {} ({} bytes, sha256: {})", part.filename, part.size, part.sha256);
             }
             println!("  Manifest:        {}", manifest_path.display());
+            println!("  Scripts:         restore.sh, restore.bat, restore.ps1 generated");
         }
     }
     Ok(())
