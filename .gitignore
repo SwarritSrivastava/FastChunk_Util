@@ -1,1 +1,13 @@
-/target
+# Build output
+target/
+
+# Editor and OS files
+.DS_Store
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Local test artifacts
+*.part*

@@ -1,154 +1,92 @@
-# FastChunk 🚀
+# fastchunk
 
-**Ultra-fast streaming folder/file chunker and zero-dependency restorer in Rust.**
+A command-line tool to split large files or directories into fixed-size chunks and restore them on another machine without extra dependencies.
 
-FastChunk splits large directories or single files (e.g., 40GB+) into exact byte-limited parts (e.g., 14GB for a 15GB flash drive) and auto-generates portable zero-install setup scripts (`restore.sh`, `restore.bat`, `restore.ps1`) for reconstruction in **a matter of seconds**.
+## Features
 
----
+- Splits directories or single large files into sized parts (e.g. 500M, 14G).
+- Generates self-contained restore scripts for Linux, macOS, and Windows.
+- Automatically checks for missing parts before extracting.
+- Two modes:
+  - `fast` (default): Uses zstd compression.
+  - `store`: Uncompressed streaming tar.
+- Optional `--bundle-executable` flag copies the `fastchunk` binary into the output folder.
 
-## The Problem FastChunk Solves
+## Build
 
-You want to move a 40GB folder to another machine using a 15GB pen drive. Conventional archivers fail you:
-1. **Large single files**: A single 25GB ISO or game file cannot fit on a 15GB drive, and file copiers fail.
-2. **Slow compression/decompression**: 7-Zip or XZ with high compression takes 30–60+ minutes to decompress 40GB.
-3. **Target machine requirements**: You arrive at a clean target machine and don't have Python, Node.js, or 7-Zip installed.
-4. **Missing part confusion**: When shuttling parts back and forth, extracting without part 3 corrupts the output silently or crashes.
+Requires Rust and Cargo.
 
-FastChunk solves all four:
-- **Streams & slices massive files** across part boundaries with zero temporary file duplication.
-- **Extracts in seconds** using high-throughput multi-threaded Zstd or raw Store mode ($\ge 2.5\text{ GB/s}$).
-- **Zero target dependencies**: Bundles native `restore.sh` (Linux/macOS) and `restore.bat`/`restore.ps1` (Windows native tools).
-- **Pre-flight part validation**: Checks all parts before touching disk and warns: *"Missing part 3 (data.part003). Please copy part 3 before restoring."*
-
----
-
-## Quick Start
-
-### Installation
-
-Build the static binary using Rust:
 ```bash
 cargo build --release
-# Executable is located at ./target/release/fastchunk
 ```
 
----
+The compiled binary will be at `target/release/fastchunk`.
 
-## Tutorial: Moving a 40GB Folder with a 15GB Pen Drive
+## Usage
 
-### Step 1: Split into 14GB Chunks at the Source Machine
+### Splitting
 
-Run `fastchunk split` with a chunk size safe for your drive (e.g., `14G` leaves room on a 15GB drive):
+Split a folder or file into chunks:
 
 ```bash
-fastchunk split /path/to/MyLargeFolder -o /tmp/transfer_parts -s 14G --bundle-executable
+fastchunk split <SOURCE> -o <OUTPUT_DIR> -s <CHUNK_SIZE>
 ```
 
-This creates the following in `/tmp/transfer_parts/`:
-- `data.part001` (14 GB)
-- `data.part002` (14 GB)
-- `data.part003` (12 GB)
-- `manifest.json` (Record of all parts, sizes, and cryptographic SHA-256 hashes)
-- `restore.sh` (Self-contained POSIX restore script for Linux/macOS)
-- `restore.bat` & `restore.ps1` (Self-contained Windows restore scripts)
-- `fastchunk` (Native binary copied via `--bundle-executable`)
+Example:
+```bash
+fastchunk split /path/to/data -o /path/to/chunks -s 14G -b
+```
+
+This generates:
+- `data.part001`, `data.part002`, ...
+- `manifest.json`: List of parts, sizes, and SHA-256 checksums.
+- `restore.sh`: Restore script for Linux and macOS.
+- `restore.bat` and `restore.ps1`: Restore scripts for Windows.
+- `fastchunk`: Bundled binary (if `-b` is used).
+
+#### Split Options
+
+- `-s, --chunk-size <SIZE>`: Size of each chunk (e.g. `500M`, `14G`, `1000MB`).
+- `-o, --output <DIR>`: Output directory for chunk files and scripts.
+- `-m, --mode <fast|store>`: Compression mode (`fast` or `store`). Default is `fast`.
+- `-b, --bundle-executable`: Copies the `fastchunk` binary into the output directory.
+- `-v, --verbose`: Prints progress and extra details.
 
 ---
 
-### Step 2: Shuttle Parts Using Your 15GB Pen Drive
+### Restoring
 
-1. **Trip 1**:
-   - Copy `manifest.json`, `restore.bat`, `restore.sh`, `restore.ps1`, and `data.part001` to your pen drive.
-   - Insert pen drive into target PC and copy everything into a staging folder (e.g. `C:\Transfers` or `~/Transfers`).
-   - Delete `data.part001` from the pen drive to free up space.
-2. **Trip 2**:
-   - Copy `data.part002` onto the pen drive.
-   - Move `data.part002` from pen drive into your target PC staging folder.
-   - Delete from pen drive.
-3. **Trip 3**:
-   - Copy `data.part003` onto the pen drive.
-   - Move `data.part003` into your target PC staging folder.
+#### Option 1: Using the fastchunk binary
 
-> **Safety Check**: If you accidentally forget a part or try to run restore early, FastChunk immediately aborts:
-> ```text
-> Error: 1 part(s) missing from target directory!
->   - Missing: data.part003 (Expected size: 12.00 GB)
-> Please copy the missing part(s) into this directory and run restore again.
-> ```
+```bash
+fastchunk restore <PARTS_DIR> -o <TARGET_DIR>
+```
 
----
+Add `--skip-verify` to bypass SHA-256 hash checks if you want faster extraction.
 
-### Step 3: Extract at Destination in Seconds
+#### Option 2: Using the generated scripts
 
-Once all parts are in the folder on the destination machine:
+On Linux or macOS:
+```bash
+cd /path/to/chunks
+./restore.sh /path/to/destination
+```
+If no destination is provided, it extracts into the current directory.
 
-#### On Windows:
-Double-click `restore.bat` or run in PowerShell:
+On Windows:
 ```cmd
-restore.bat C:\DestinationFolder
+restore.bat C:\path\to\destination
 ```
-
-#### On Linux / macOS:
-Run the zero-install POSIX shell script:
-```bash
-./restore.sh /path/to/DestinationFolder
-```
-
-#### Using the Native FastChunk Binary:
-If `fastchunk` is in the folder:
-```bash
-./fastchunk restore . -o /path/to/DestinationFolder
-```
-*Add `--skip-verify` to bypass SHA-256 validation for immediate instant disk-speed extraction.*
+If no destination is provided, it extracts into the current directory.
 
 ---
 
-## CLI Reference
+### Running Tests
 
-### `fastchunk split`
-```bash
-fastchunk split <SOURCE_PATH> -o <OUTPUT_DIR> -s <CHUNK_SIZE> [OPTIONS]
-```
-
-**Options:**
-- `-s, --chunk-size <SIZE>`: Size of each part with units (`14G`, `14GB`, `4000MB`, `500M`, `1GiB`, `64K`).
-- `-o, --output <DIR>`: Directory where chunk parts, manifest, and restore scripts are saved.
-- `-m, --mode <store|fast>`:
-  - `fast` *(default)*: Multi-threaded Zstandard Level 1 compression (> 2.0 GB/s decompression).
-  - `store`: Zero-compression raw TAR stream, running at full NVMe/SSD drive throughput.
-- `-b, --bundle-executable`: Automatically copies the running `fastchunk` binary into the output directory.
-- `-v, --verbose`: Prints detailed diagnostic logs.
-
-### `fastchunk restore`
-```bash
-fastchunk restore <PARTS_DIR> -o <OUTPUT_DIR> [OPTIONS]
-```
-
-**Options:**
-- `<PARTS_DIR>`: Directory containing `manifest.json` and `data.part*` files.
-- `-o, --output <DIR>`: Destination directory for extracted files.
-- `--skip-verify`: Skips on-the-fly SHA-256 integrity verification for maximum speed.
-- `-v, --verbose`: Prints detailed diagnostic logs.
-
----
-
-## Technical Architecture & Performance
-
-- **Memory Efficiency**: $O(1)$ memory consumption (< 64MB RAM footprint) regardless of whether transferring 10MB or 1TB.
-- **Benchmark Measured Throughput**:
-  - **Store Mode**: $\approx 2,720\text{ MB/s}$
-  - **Fast Zstd Mode**: $\approx 3,170\text{ MB/s}$
-- **Pipeline Interoperability**: Parts are 100% compliant with standard POSIX streams:
-  ```bash
-  cat data.part* | zstd -d | tar -xf - -C /target
-  ```
-
----
-
-## Testing
-
-Run the full automated test suite:
 ```bash
 cargo test
 ```
-All 35 unit tests, integration tests, shuttle simulation tests, and extraction benchmarks pass.
+
+## License
+
+MIT or Apache-2.0

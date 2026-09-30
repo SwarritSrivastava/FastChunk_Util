@@ -62,10 +62,11 @@ impl SplitArgs {
 #[derive(Parser, Debug, Clone)]
 pub struct RestoreArgs {
     /// Path to directory containing manifest.json and chunk parts
+    #[arg(default_value = ".")]
     pub parts_dir: PathBuf,
 
     /// Target directory where extracted files will be written
-    #[arg(short = 'o', long = "output")]
+    #[arg(short = 'o', long = "output", default_value = ".")]
     pub output: PathBuf,
 
     /// Skip SHA-256 integrity verification of parts before restoring
@@ -298,6 +299,20 @@ mod tests {
                 assert_eq!(args.output, PathBuf::from("out_dir"));
                 assert!(args.skip_verify);
                 assert!(!args.verbose);
+            }
+            _ => panic!("Expected Restore command"),
+        }
+    }
+
+    #[test]
+    fn test_cli_parse_restore_defaults() {
+        let cli = Cli::try_parse_from(["fastchunk", "restore"]).unwrap();
+
+        match cli.command {
+            Commands::Restore(args) => {
+                assert_eq!(args.parts_dir, PathBuf::from("."));
+                assert_eq!(args.output, PathBuf::from("."));
+                assert!(!args.skip_verify);
             }
             _ => panic!("Expected Restore command"),
         }
