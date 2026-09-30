@@ -40,6 +40,10 @@ pub struct SplitArgs {
     #[arg(short = 'm', long = "mode", value_enum, default_value = "fast")]
     pub mode: CompressionMode,
 
+    /// Bundle the current fastchunk executable into the output directory alongside chunks and scripts
+    #[arg(short = 'b', long = "bundle-executable", default_value_t = false)]
+    pub bundle_executable: bool,
+
     /// Enable verbose diagnostic logging
     #[arg(short = 'v', long = "verbose", default_value_t = false)]
     pub verbose: bool,
@@ -90,6 +94,16 @@ pub enum Commands {
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
+}
+
+pub fn bundle_current_executable(output_dir: &std::path::Path) -> std::io::Result<PathBuf> {
+    let exe_path = std::env::current_exe()?;
+    let exe_name = exe_path
+        .file_name()
+        .unwrap_or_else(|| std::ffi::OsStr::new("fastchunk"));
+    let target_path = output_dir.join(exe_name);
+    std::fs::copy(&exe_path, &target_path)?;
+    Ok(target_path)
 }
 
 pub fn run() -> Result<(), Box<dyn Error>> {
@@ -146,6 +160,20 @@ pub fn run() -> Result<(), Box<dyn Error>> {
 
             crate::scripts::write_restore_scripts(&args.output, &manifest)?;
 
+            let bundled_path = if args.bundle_executable {
+                match bundle_current_executable(&args.output) {
+                    Ok(bundled) => Some(bundled),
+                    Err(e) => {
+                        if args.verbose {
+                            eprintln!("Warning: Failed to bundle executable: {}", e);
+                        }
+                        None
+                    }
+                }
+            } else {
+                None
+            };
+
             println!("Split complete!");
             println!("  Source:          {}", args.source.display());
             println!("  Output:          {}", args.output.display());
@@ -158,6 +186,9 @@ pub fn run() -> Result<(), Box<dyn Error>> {
             }
             println!("  Manifest:        {}", manifest_path.display());
             println!("  Scripts:         restore.sh, restore.bat, restore.ps1 generated");
+            if let Some(bundled) = bundled_path {
+                println!("  Bundled binary:  {}", bundled.display());
+            }
         }
         Commands::Restore(args) => {
             if !args.parts_dir.exists() || !args.parts_dir.is_dir() {
@@ -270,5 +301,55 @@ mod tests {
             }
             _ => panic!("Expected Restore command"),
         }
+    }
+
+    #[test]
+    fn test_cli_parse_split_with_bundle_executable() {
+        let cli_short = Cli::try_parse_from([
+            "fastchunk",
+            "split",
+            "src_dir",
+            "-o",
+            "out_dir",
+            "-s",
+            "1G",
+            "-b",
+        ])
+        .unwrap();
+
+        match cli_short.command {
+            Commands::Split(args) => {
+                assert!(args.bundle_executable);
+            }
+            _ => panic!("Expected Split command"),
+        }
+
+        let cli_long = Cli::try_parse_from([
+            "fastchunk",
+            "split",
+            "src_dir",
+            "-o",
+            "out_dir",
+            "-s",
+            "1G",
+            "--bundle-executable",
+        ])
+        .unwrap();
+
+        match cli_long.command {
+            Commands::Split(args) => {
+                assert!(args.bundle_executable);
+            }
+            _ => panic!("Expected Split command"),
+        }
+    }
+
+    #[test]
+    fn test_bundle_executable_copies_binary() {
+        let temp = tempfile::tempdir().unwrap();
+        let bundled = bundle_current_executable(temp.path()).unwrap();
+        assert!(bundled.exists());
+        let metadata = std::fs::metadata(&bundled).unwrap();
+        assert!(metadata.len() > 0);
     }
 }
