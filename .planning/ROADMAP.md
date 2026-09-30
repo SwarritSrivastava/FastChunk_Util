@@ -16,9 +16,9 @@
 - [x] Support fast multi-threaded Zstandard decompression and zero-compression stream reassembly.
 - [x] Implement progress reporting during extraction.
 
-## Phase 3: Validation, Large Dataset Benchmarking & Ergonomics
+## Phase 3: Validation, Large Dataset Benchmarking & Ergonomics [x] (completed 2026-09-30)
 **Goal**: Verify performance on large datasets, validate cross-platform compatibility, and add UX polish.
-- [ ] End-to-end integration tests simulating single-pen-drive multi-part transfers.
-- [ ] Benchmark extraction speed on large files/directories (verifying seconds-scale extraction).
-- [ ] Add standalone single-binary bundle support so the restorer binary can be copied directly alongside the parts.
-- [ ] Documentation and user guide.
+- [x] End-to-end integration tests simulating single-pen-drive multi-part transfers.
+- [x] Benchmark extraction speed on large files/directories (verifying seconds-scale extraction).
+- [x] Add standalone single-binary bundle support so the restorer binary can be copied directly alongside the parts.
+- [x] Documentation and user guide.
