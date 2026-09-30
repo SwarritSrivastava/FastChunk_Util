@@ -1,12 +1,12 @@
 # Roadmap
 
-## Phase 1: Core Chunking & Streaming Engine
+## Phase 1: Core Chunking & Streaming Engine [x] (completed 2026-09-30)
 **Goal**: Build the core Rust CLI and streaming engine that packages files/folders, calculates checksums, and splits into fixed-size chunks (`part_001.bin`, etc.) while generating a robust `manifest.json`.
-- [ ] Initialize Cargo project with dependencies (`clap`, `zstd`, `sha2`, `serde`, `tar`, `indicatif`).
-- [ ] Implement chunk-size parser (`14G`, `500M`, `4000MB`).
-- [ ] Implement streaming archiver that writes directly into sliced chunk files of exact byte limits.
-- [ ] Implement manifest generator with file list, chunk metadata, and SHA-256 hashes.
-- [ ] Provide CLI command `split <SRC> -o <OUT> -s <SIZE> [--store | --fast]`.
+- [x] Initialize Cargo project with dependencies (`clap`, `zstd`, `sha2`, `serde`, `tar`, `indicatif`).
+- [x] Implement chunk-size parser (`14G`, `500M`, `4000MB`).
+- [x] Implement streaming archiver that writes directly into sliced chunk files of exact byte limits.
+- [x] Implement manifest generator with file list, chunk metadata, and SHA-256 hashes.
+- [x] Provide CLI command `split <SRC> -o <OUT> -s <SIZE> [--store | --fast]`.
 
 ## Phase 2: Zero-Dependency Setup & Fast Restorer
 **Goal**: Build the destination reconstruction pipeline that extracts in seconds without external dependencies, detecting missing parts before execution.

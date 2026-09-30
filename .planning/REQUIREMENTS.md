@@ -15,3 +15,20 @@
 - **NFR-2**: Zero External Dependencies on Target — Target computer requires no pre-installed runtime (no Python, no Node.js, no 7-Zip). Works via native OS tools or bundled portable static binary.
 - **NFR-3**: Cross-Platform Compatibility — Supports paths, symlinks, and file permissions across Linux, Windows, and macOS.
 - **NFR-4**: Memory Efficiency — Streaming chunking and extraction using fixed-size buffers (< 64MB RAM footprint) regardless of whether processing 40GB or 1TB.
+
+## Traceability
+
+| Requirement | Phase | Status | Verification |
+|-------------|-------|--------|--------------|
+| FR-1 | Phase 1 | Satisfied | Tested via `size_parser` unit tests and CLI integration |
+| FR-2 | Phase 1 | Satisfied | Tested via `chunker` boundary tests |
+| FR-3 | Phase 1 | Satisfied | Tested via `test_split_single_large_file_across_chunks` |
+| FR-4 | Phase 1 | Satisfied | Tested via `manifest` serialization and SHA-256 validation |
+| FR-5 | Phase 2 | Pending | Phase 2 scope |
+| FR-6 | Phase 2 | Pending | Phase 2 scope |
+| FR-7 | Phase 2 | Pending | Phase 2 scope |
+| FR-8 | Phase 1 | Satisfied | Tested via `archiver` store and fast zstd modes |
+| NFR-1 | Phase 2 | Pending | Phase 2 & 3 benchmarks |
+| NFR-2 | Phase 2 | Pending | Phase 2 zero-dependency scripts & binary |
+| NFR-3 | Phase 1..3 | In Progress | Rust standard library cross-platform abstractions |
+| NFR-4 | Phase 1 | Satisfied | Streaming I/O with fixed 256KB buffer |
