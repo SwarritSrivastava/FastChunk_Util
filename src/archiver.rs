@@ -17,22 +17,30 @@ fn scan_source(source: &Path) -> io::Result<(u64, usize)> {
     let mut total_entries = 0usize;
 
     if source.is_file() {
-        let meta = source.metadata()?;
+        let meta = source.symlink_metadata()?;
         return Ok((meta.len(), 1));
     }
 
     if source.is_dir() {
         let mut stack = vec![source.to_path_buf()];
         while let Some(dir) = stack.pop() {
-            for entry in std::fs::read_dir(dir)? {
-                let entry = entry?;
-                let path = entry.path();
-                let ft = entry.file_type()?;
-                total_entries += 1;
-                if ft.is_dir() {
-                    stack.push(path);
-                } else if ft.is_file() {
-                    total_bytes += entry.metadata()?.len();
+            if let Ok(entries) = std::fs::read_dir(dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if let Ok(ft) = entry.file_type() {
+                        total_entries += 1;
+                        if ft.is_dir() {
+                            stack.push(path);
+                        } else if ft.is_file() {
+                            if let Ok(meta) = entry.metadata() {
+                                total_bytes += meta.len();
+                            }
+                        } else if ft.is_symlink() {
+                            if let Ok(meta) = path.symlink_metadata() {
+                                total_bytes += meta.len();
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -66,6 +74,7 @@ pub fn pack_archive(
     let parts = match mode {
         CompressionMode::Store => {
             let mut builder = tar::Builder::new(writer);
+            builder.follow_symlinks(false);
             if source.is_dir() {
                 builder.append_dir_all(".", source)?;
             } else if source.is_file() {
@@ -87,6 +96,7 @@ pub fn pack_archive(
             encoder.multithread(threads as u32)?;
 
             let mut builder = tar::Builder::new(encoder);
+            builder.follow_symlinks(false);
             if source.is_dir() {
                 builder.append_dir_all(".", source)?;
             } else if source.is_file() {
