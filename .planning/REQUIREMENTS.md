@@ -24,11 +24,11 @@
 | FR-2 | Phase 1 | Satisfied | Tested via `chunker` boundary tests |
 | FR-3 | Phase 1 | Satisfied | Tested via `test_split_single_large_file_across_chunks` |
 | FR-4 | Phase 1 | Satisfied | Tested via `manifest` serialization and SHA-256 validation |
-| FR-5 | Phase 2 | Pending | Phase 2 scope |
-| FR-6 | Phase 2 | Pending | Phase 2 scope |
-| FR-7 | Phase 2 | Pending | Phase 2 scope |
+| FR-5 | Phase 2 | Satisfied | Tested via `scripts` unit & integration tests (`restore.sh`, `restore.bat`, `restore.ps1`) |
+| FR-6 | Phase 2 | Satisfied | Tested via `test_preflight_missing_part_alert_prevents_extraction` |
+| FR-7 | Phase 2 | Satisfied | Tested via `extract_archive` with Zstd & Store streaming |
 | FR-8 | Phase 1 | Satisfied | Tested via `archiver` store and fast zstd modes |
-| NFR-1 | Phase 2 | Pending | Phase 2 & 3 benchmarks |
-| NFR-2 | Phase 2 | Pending | Phase 2 zero-dependency scripts & binary |
-| NFR-3 | Phase 1..3 | In Progress | Rust standard library cross-platform abstractions |
-| NFR-4 | Phase 1 | Satisfied | Streaming I/O with fixed 256KB buffer |
+| NFR-1 | Phase 2 | Satisfied | Streaming I/O directly into tar unpacker at disk throughput |
+| NFR-2 | Phase 2 | Satisfied | Portable standalone scripts use native OS tools (`cat`/`tar`/`powershell`) |
+| NFR-3 | Phase 1..3 | In Progress | Cross-platform Rust stdlib paths and native scripts |
+| NFR-4 | Phase 1..2 | Satisfied | Streaming I/O with fixed 256KB buffer |

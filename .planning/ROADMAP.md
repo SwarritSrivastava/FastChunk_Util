@@ -8,13 +8,13 @@
 - [x] Implement manifest generator with file list, chunk metadata, and SHA-256 hashes.
 - [x] Provide CLI command `split <SRC> -o <OUT> -s <SIZE> [--store | --fast]`.
 
-## Phase 2: Zero-Dependency Setup & Fast Restorer
+## Phase 2: Zero-Dependency Setup & Fast Restorer [x] (completed 2026-09-30)
 **Goal**: Build the destination reconstruction pipeline that extracts in seconds without external dependencies, detecting missing parts before execution.
-- [ ] Generate self-contained `restore.sh` (Linux/macOS) and `restore.bat`/`restore.ps1` (Windows native).
-- [ ] Implement native Rust `restore <PARTS_DIR> -o <TARGET_DIR>` subcommand.
-- [ ] Implement pre-flight part verification: fail early with clear warnings if parts (e.g. part 3 of 4) are missing.
-- [ ] Support fast multi-threaded Zstandard decompression and zero-compression stream reassembly.
-- [ ] Implement progress reporting during extraction.
+- [x] Generate self-contained `restore.sh` (Linux/macOS) and `restore.bat`/`restore.ps1` (Windows native).
+- [x] Implement native Rust `restore <PARTS_DIR> -o <TARGET_DIR>` subcommand.
+- [x] Implement pre-flight part verification: fail early with clear warnings if parts (e.g. part 3 of 4) are missing.
+- [x] Support fast multi-threaded Zstandard decompression and zero-compression stream reassembly.
+- [x] Implement progress reporting during extraction.
 
 ## Phase 3: Validation, Large Dataset Benchmarking & Ergonomics
 **Goal**: Verify performance on large datasets, validate cross-platform compatibility, and add UX polish.
