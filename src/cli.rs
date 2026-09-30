@@ -55,10 +55,30 @@ impl SplitArgs {
     }
 }
 
+#[derive(Parser, Debug, Clone)]
+pub struct RestoreArgs {
+    /// Path to directory containing manifest.json and chunk parts
+    pub parts_dir: PathBuf,
+
+    /// Target directory where extracted files will be written
+    #[arg(short = 'o', long = "output")]
+    pub output: PathBuf,
+
+    /// Skip SHA-256 integrity verification of parts before restoring
+    #[arg(long = "skip-verify", default_value_t = false)]
+    pub skip_verify: bool,
+
+    /// Enable verbose diagnostic logging
+    #[arg(short = 'v', long = "verbose", default_value_t = false)]
+    pub verbose: bool,
+}
+
 #[derive(Subcommand, Debug, Clone)]
 pub enum Commands {
     /// Split a file or directory into bounded chunk parts
     Split(SplitArgs),
+    /// Restore a file or directory from chunk parts
+    Restore(RestoreArgs),
 }
 
 #[derive(Parser, Debug, Clone)]
@@ -139,6 +159,40 @@ pub fn run() -> Result<(), Box<dyn Error>> {
             println!("  Manifest:        {}", manifest_path.display());
             println!("  Scripts:         restore.sh, restore.bat, restore.ps1 generated");
         }
+        Commands::Restore(args) => {
+            if !args.parts_dir.exists() || !args.parts_dir.is_dir() {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::NotFound,
+                    format!(
+                        "Parts directory '{}' does not exist or is not a directory",
+                        args.parts_dir.display()
+                    ),
+                )
+                .into());
+            }
+
+            println!(
+                "Restoring archive from '{}' to '{}'...",
+                args.parts_dir.display(),
+                args.output.display()
+            );
+
+            let res = crate::restore::extract_archive(
+                &args.parts_dir,
+                &args.output,
+                &crate::restore::RestoreOptions {
+                    skip_verify: args.skip_verify,
+                    verbose: args.verbose,
+                },
+            )?;
+
+            println!("Restore complete!");
+            println!("  Source archive: {}", res.source_name);
+            println!("  Target:         {}", args.output.display());
+            println!("  Entries:        {}", res.total_entries_restored);
+            println!("  Uncompressed:   {} bytes", res.total_bytes_uncompressed);
+            println!("  Time elapsed:   {:.2?}", res.duration);
+        }
     }
     Ok(())
 }
@@ -170,6 +224,7 @@ mod tests {
                 assert_eq!(args.mode, CompressionMode::Store);
                 assert!(!args.verbose);
             }
+            _ => panic!("Expected Split command"),
         }
     }
 
@@ -190,6 +245,30 @@ mod tests {
             Commands::Split(args) => {
                 assert_eq!(args.mode, CompressionMode::Fast);
             }
+            _ => panic!("Expected Split command"),
+        }
+    }
+
+    #[test]
+    fn test_cli_parse_restore() {
+        let cli = Cli::try_parse_from([
+            "fastchunk",
+            "restore",
+            "parts_dir",
+            "-o",
+            "out_dir",
+            "--skip-verify",
+        ])
+        .unwrap();
+
+        match cli.command {
+            Commands::Restore(args) => {
+                assert_eq!(args.parts_dir, PathBuf::from("parts_dir"));
+                assert_eq!(args.output, PathBuf::from("out_dir"));
+                assert!(args.skip_verify);
+                assert!(!args.verbose);
+            }
+            _ => panic!("Expected Restore command"),
         }
     }
 }
