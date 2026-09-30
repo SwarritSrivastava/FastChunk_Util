@@ -198,6 +198,7 @@ mod tests {
     use super::*;
     use crate::chunker::PartInfo;
     use std::fs;
+    use std::io::Read;
     use tempfile::tempdir;
 
     #[test]
@@ -300,5 +301,90 @@ mod tests {
             }
             other => panic!("Expected CorruptParts error, got {:?}", other),
         }
+    }
+    #[test]
+    fn test_chunked_reader_sequential_read() {
+        let temp = tempdir().unwrap();
+        let p1 = temp.path().join("data.part001");
+        let p2 = temp.path().join("data.part002");
+        let p3 = temp.path().join("data.part003");
+
+        let b1: Vec<u8> = (0..100).collect();
+        let b2: Vec<u8> = (100..200).collect();
+        let b3: Vec<u8> = (200..255).collect();
+
+        fs::write(&p1, &b1).unwrap();
+        fs::write(&p2, &b2).unwrap();
+        fs::write(&p3, &b3).unwrap();
+
+        let mut reader = ChunkedReader::new(vec![p1, p2, p3]).unwrap();
+        let mut out = Vec::new();
+        let mut buf = [0u8; 1024];
+        loop {
+            let n = reader.read(&mut buf).unwrap();
+            if n == 0 {
+                break;
+            }
+            out.extend_from_slice(&buf[..n]);
+        }
+
+        let mut expected = Vec::new();
+        expected.extend_from_slice(&b1);
+        expected.extend_from_slice(&b2);
+        expected.extend_from_slice(&b3);
+
+        assert_eq!(out, expected);
+    }
+
+    #[test]
+    fn test_chunked_reader_small_buffer_reads() {
+        let temp = tempdir().unwrap();
+        let p1 = temp.path().join("data.part001");
+        let p2 = temp.path().join("data.part002");
+
+        let b1 = b"ABCDEFGHIJ"; // 10 bytes
+        let b2 = b"KLMNOPQRST"; // 10 bytes
+
+        fs::write(&p1, b1).unwrap();
+        fs::write(&p2, b2).unwrap();
+
+        let mut reader = ChunkedReader::new(vec![p1, p2]).unwrap();
+        let mut out = Vec::new();
+        let mut buf = [0u8; 7]; // 7 bytes buffer, forces cross-boundary reads
+
+        loop {
+            let n = reader.read(&mut buf).unwrap();
+            if n == 0 {
+                break;
+            }
+            out.extend_from_slice(&buf[..n]);
+        }
+
+        assert_eq!(&out, b"ABCDEFGHIJKLMNOPQRST");
+    }
+
+    #[test]
+    fn test_chunked_reader_empty_parts() {
+        let temp = tempdir().unwrap();
+        let p1 = temp.path().join("data.part001");
+        let p2 = temp.path().join("data.part002");
+        let p3 = temp.path().join("data.part003");
+
+        fs::write(&p1, b"").unwrap();
+        fs::write(&p2, b"hello").unwrap();
+        fs::write(&p3, b"").unwrap();
+
+        let mut reader = ChunkedReader::new(vec![p1, p2, p3]).unwrap();
+        let mut out = Vec::new();
+        let mut buf = [0u8; 16];
+        loop {
+            let n = reader.read(&mut buf).unwrap();
+            if n == 0 {
+                break;
+            }
+            out.extend_from_slice(&buf[..n]);
+        }
+
+        assert_eq!(&out, b"hello");
     }
 }
